@@ -4,6 +4,9 @@ Exports any mbed program as a binary
 ##About
 This script navigates through sub directories and compiles each subdirectory into separate .ar files for mbed.org. It also handles the inclusion of header files and the end result is a single folder containing your binaries, and the required headers.
 
+##Dependencies
+Only one, which is that `armcc` is attached to your path variable.
+
 ##Executing
 To execute a binary build follow these steps:
 1. Download your program from mbed.org in zip format. 
