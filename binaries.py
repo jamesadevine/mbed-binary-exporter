@@ -113,6 +113,7 @@ if __name__ == '__main__':
     linker_dirs = []
     header_files = []
     remove_files = []
+    
     #get all header file directories    
     for root, folders, files in os.walk(options.path):
 
@@ -140,8 +141,12 @@ if __name__ == '__main__':
  
                     if temp_dir not in linker_dirs:
                         linker_dirs.append(temp_dir)
+
+    if options.verbose:
+        print "Finished finding header files\n\n"
+        print "Copying header files\n\n"
                         
-    #copy the files
+    #copy the header files
     for header_file in header_files:
         header_dir = build_destination + "/" + '/'.join(header_file.split('/')[3:]).replace(header_file.split('/')[-1],'')
         
@@ -149,15 +154,23 @@ if __name__ == '__main__':
             os.makedirs(header_dir)
         shutil.copy(header_file,header_dir)
 
+    if options.verbose:
+        print "Finished copying header files\n\n"
+
     
     
     #iterate the filtered folders
     for build_folder in sub_folders:
+
+        if options.verbose:
+            print "Processing folder: "+build_folder+"\n\n"
+        
         compile_files_c = []
         compile_files_cpp = []
         
         for root, folders, files in os.walk(options.path+"/"+build_folder):
-            
+
+            #filter out folders that we never want (mercurial folders)            
             for folder in folders:
                 if folder in always_ignore:
                     folders.remove(folder)
@@ -172,50 +185,38 @@ if __name__ == '__main__':
                 #get only the extension                
                 ext = ext[1]
 
+                #check if we need to compile it                
                 if(ext in file_exts):
                     directory = root.replace('\\','/')
-                    print "'"+ext+"'" + str(ext == "cpp")
                     if ext == "c":
-                        print "ext is c"
                         compile_files_c.append(directory.replace("./",'')+"/"+file)
                     if ext == "cpp" or ext == "s":
-                        print "ext is cpp"
                         compile_files_cpp.append(directory.replace("./",'')+"/"+file)
 
-        #concatenate the header copy path        
-        #header_dest = build_destination+"/"+build_folder+"_inc"
-
-        #make directory if the folder doesn't exist
-        #if not os.path.exists(header_dest):
-        #    os.mkdir(header_dest)
-
-        print "ASDASDASDASDASDASD "+str(compile_files_cpp)
-
+        #copy c files ready for compilation to the build folder
         for compile_file_c in compile_files_c:
             shutil.copy(compile_file_c,build_destination)
 
+        #copy cpp files ready for compilation to the build folder
         for compile_file_cpp in compile_files_cpp:
             shutil.copy(compile_file_cpp,build_destination)
 
+        #reverse linker directories 
         linker_dirs = list(reversed(linker_dirs))
         
         if options.verbose:
-            print "Moved header files: " + str(header_files) + "\n\n"
-            #print "Linking files: " + str(compile_files) + "\n\n"
             print "Compile string C: "+' '.join(compile_files_c) + "\n\n"
             print "Compile string CPP: "+' '.join(compile_files_cpp) + "\n\n"
-            print "Linker string: -I"+' -I'.join(linker_dirs) + "\n\n"
+            print "Include string: -I"+' -I'.join(linker_dirs) + "\n\n"
 
-##        print "ACTUAL -I"+' -I'.join(linker_dirs)+" "+" ".join([build_destination+"/"+compile_file.split('/')[-1] for compile_file in compile_files]) + "\n\n"
-
-        #COMPILE C!
+        #compile C source
         if len(compile_files_c) > 0:
-            if os.system("armcc -c -W --cpu Cortex-M0 --apcs=interwork --c99 -O2 -I"+' -I'.join(linker_dirs)+" "+" ".join([build_destination+"/"+compile_file_c.split('/')[-1] for compile_file_c in compile_files_c])+" --gnu --no_rtti -I C:\Keil\ARM\RV31\INC -I C:\Keil\ARM\CMSIS\Include -DTARGET_NRF51822 -DTARGET_M0 -DTARGET_CORTEX_M -DTARGET_NORDIC -DTARGET_NRF51822_MKIT -DTARGET_MCU_NRF51822 -DTARGET_MCU_NORDIC_16K -DTOOLCHAIN_ARM_STD -DTOOLCHAIN_ARM -D__CORTEX_M0 -DARM_MATH_CM0 -DMBED_BUILD_TIMESTAMP=\"1435840731.68\" -D__MBED__=\"1\" -DNRF51 -D__ASSERT_MSG -o \""+build_destination+"/*.o\"  "):
+            if os.system("armcc -c -W --no_strict --cpu Cortex-M0 --apcs=interwork --c99 -O2 -I"+' -I'.join(linker_dirs)+" "+" ".join([build_destination+"/"+compile_file_c.split('/')[-1] for compile_file_c in compile_files_c])+" --gnu --no_rtti -I C:\Keil\ARM\RV31\INC -I C:\Keil\ARM\CMSIS\Include -DTARGET_NRF51822 -DTARGET_M0 -DTARGET_CORTEX_M -DTARGET_NORDIC -DTARGET_NRF51822_MKIT -DTARGET_MCU_NRF51822 -DTARGET_MCU_NORDIC_16K -DTOOLCHAIN_ARM_STD -DTOOLCHAIN_ARM -D__CORTEX_M0 -DARM_MATH_CM0 -DMBED_BUILD_TIMESTAMP=\"1435840731.68\" -D__MBED__=\"1\" -DNRF51 -D__ASSERT_MSG -o \""+build_destination+"/*.o\"  "):
                 print "check output, and try again"
                 exit(1)
         
-        #COMPILE CPP!
-        if os.system("armcc -c -W --cpu Cortex-M0 --apcs=interwork --cpp -O2 -I"+' -I'.join(linker_dirs)+" "+" ".join([build_destination+"/"+compile_file_cpp.split('/')[-1] for compile_file_cpp in compile_files_cpp])+" --gnu --no_rtti -I C:\Keil\ARM\RV31\INC -I C:\Keil\ARM\CMSIS\Include -DTARGET_NRF51822 -DTARGET_M0 -DTARGET_CORTEX_M -DTARGET_NORDIC -DTARGET_NRF51822_MKIT -DTARGET_MCU_NRF51822 -DTARGET_MCU_NORDIC_16K -DTOOLCHAIN_ARM_STD -DTOOLCHAIN_ARM -D__CORTEX_M0 -DARM_MATH_CM0 -DMBED_BUILD_TIMESTAMP=\"1435840731.68\" -D__MBED__=\"1\" -DNRF51 -D__ASSERT_MSG -o \""+build_destination+"/*.o\"  "):
+        #compile cpp source
+        if os.system("armcc -c -W --no_strict --cpu Cortex-M0 --apcs=interwork --cpp -O2 -I"+' -I'.join(linker_dirs)+" "+" ".join([build_destination+"/"+compile_file_cpp.split('/')[-1] for compile_file_cpp in compile_files_cpp])+" --gnu --no_rtti -I C:\Keil\ARM\RV31\INC -I C:\Keil\ARM\CMSIS\Include -DTARGET_NRF51822 -DTARGET_M0 -DTARGET_CORTEX_M -DTARGET_NORDIC -DTARGET_NRF51822_MKIT -DTARGET_MCU_NRF51822 -DTARGET_MCU_NORDIC_16K -DTOOLCHAIN_ARM_STD -DTOOLCHAIN_ARM -D__CORTEX_M0 -DARM_MATH_CM0 -DMBED_BUILD_TIMESTAMP=\"1435840731.68\" -D__MBED__=\"1\" -DNRF51 -D__ASSERT_MSG -o \""+build_destination+"/*.o\"  "):
             print "check output, and try again"
             exit(1)
 
@@ -231,22 +232,16 @@ if __name__ == '__main__':
                 exit(1)
 
     #cleanup
-    for file in glob(build_destination+"/*.c")+glob(build_destination+"/*.cpp") + remove_files:
+    for file in glob(build_destination+"/*.c") + glob(build_destination+"/*.cpp") + glob(build_destination+"/*.s") + remove_files:
         if os.remove(file):
             print "Couldn't delete src files! Are you an administrator?"
             exit(1)
         recursive_remove(file)
 
-        
-            
-
+    #move the ar files to the build     
     for file in glob("./*.ar"):
         if shutil.move(file,build_destination):
             print "Couldn't delete src files! Are you an administrator?"
             exit(1)
         
-
-    #if os.system("mv ./*.ar "+build_destination):
-    #    print "Couldn't move ar files! Are you an administrator?"
-    #    exit(1)
         
