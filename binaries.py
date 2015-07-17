@@ -1,26 +1,31 @@
 #! /usr/bin/env python2
 import os
 import sys
+import re
 import shutil
 from glob import glob
 from optparse import OptionParser
+from datetime import datetime
 
 def recursive_remove(dir):
     dir = '/'.join(dir.split('/')[0:-1])
-    #if len(dir.split('/')) == 1:
-        #return
     if len(os.listdir(dir)) == 0:
         os.rmdir(dir)
         recursive_remove(dir)
     return
-        
 
+def clean_dir(dir):
+    for root, dirs, files in os.walk(dir):
+        for f in files:
+            os.unlink(os.path.join(root, f))
+        for d in dirs:
+            shutil.rmtree(os.path.join(root, d))
+    
 if __name__ == '__main__':
 
-    # Parse Options
     parser = OptionParser()
 
-    # Extra libraries
+    #command line options
     parser.add_option("-v", "--verbose",
                       action="store_true",
                       dest="verbose",
@@ -55,10 +60,43 @@ if __name__ == '__main__':
                       default=False,
                       help="Build specific folders in the target directory. Accepts a csv string of folder names.")
 
+    parser.add_option("-c", "--commit",
+                      action="store",
+		      type="string",
+                      dest="commit",
+                      default=False,
+                      help="A URL to a mercurial repo where the binaries will be pushed to.")
+
     (options, args) = parser.parse_args()
 
     if not options.path:
         parser.error("You must specify a path \n\nExample: python binaries.py -p \"./FolderName\"")
+
+    #we've been given a mercurial repo (hopefully)...    
+    if "https" in options.path:
+        options.path = options.path.strip('/')
+        
+        #extract the username for subsequent clones...
+        mercurial_username = re.split('([a-z]*@)',options.path)[1]
+        os.system("hg clone "+options.path)
+
+        #ammend the path as we now have the files locally        
+        options.path = "./"+str(options.path.split('/')[-1])
+
+        #look for any embedded libs in the subdir and grab those as well        
+        for file in glob(options.path+"/*.lib"):
+            with open(file) as f:
+                url = f.readlines()[0]
+                
+                #strip version at the end of the url
+                url = re.split('(/#.*\\n)',url)[0] 
+                index = url.find("developer")
+
+                #insert our username
+                url = url[:index]+mercurial_username+url[index:]
+
+                #begin clone
+                os.system("hg clone "+url+" "+options.path+'/'+url.split('/')[-1])
 
     build_destination = "./build"
 
@@ -103,12 +141,8 @@ if __name__ == '__main__':
         #clean the build directory otherwise
         if options.verbose:
             print "Cleaning: " + build_destination + "\n\n"
+        clean_dir(build_destination)
         
-        for root, dirs, files in os.walk(build_destination):
-            for f in files:
-                os.unlink(os.path.join(root, f))
-            for d in dirs:
-                shutil.rmtree(os.path.join(root, d))
 
     linker_dirs = []
     header_files = []
@@ -116,10 +150,9 @@ if __name__ == '__main__':
     
     #get all header file directories    
     for root, folders, files in os.walk(options.path):
-
         for folder in folders:
-                if folder in always_ignore:
-                    folders.remove(folder)
+            if folder in always_ignore:
+                folders.remove(folder)
         
         for file in files:
             ext = file.split(".")
@@ -136,6 +169,9 @@ if __name__ == '__main__':
                 if ext is "h":
                     header_files.append(directory+"/"+file)
                     temp_dir = build_destination+"/"+'/'.join(directory.split('/')[3:])
+
+                    #if the user has specified we ignore it - we don't want to include the header files
+                    #we add them to a list so they are removed in the clean up phase
                     if  len(list(set(ignore_folders) & set(directory.split('/')))) > 0 and temp_dir+'/'+file not in remove_files:
                         remove_files.append(temp_dir+'/'+file)
  
@@ -157,8 +193,6 @@ if __name__ == '__main__':
     if options.verbose:
         print "Finished copying header files\n\n"
 
-    
-    
     #iterate the filtered folders
     for build_folder in sub_folders:
 
@@ -237,11 +271,36 @@ if __name__ == '__main__':
             print "Couldn't delete src files! Are you an administrator?"
             exit(1)
         recursive_remove(file)
-
-    #move the ar files to the build     
+        
+    #move the ar files to the build folder     
     for file in glob("./*.ar"):
         if shutil.move(file,build_destination):
-            print "Couldn't delete src files! Are you an administrator?"
+            print "Couldn't move .ar files! Are you an administrator?"
             exit(1)
+    
+    if options.commit:
+        options.commit = options.commit.strip('/')
+
+        repo_dir = './'+options.commit.split('/')[-1]
+
+        clean_dir(repo_dir)
+
+        #clone before commit
+        os.system("hg clone "+options.commit)
+
+        copy_path = repo_dir + build_destination.replace('./','/')
+
+        if os.path.exists(copy_path):
+            clean_dir(copy_path)
+
+        shutil.copytree(build_destination,copy_path)
+
+        #do some hg trickery         
+        os.chdir(repo_dir)
+        os.system("hg forget *")
+        os.system("hg add *")
+        os.system("hg commit -m \"Generated binaries at "+str(datetime.now())+"\"")
+        os.system("hg push")
+            
         
         
