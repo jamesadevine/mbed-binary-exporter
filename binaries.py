@@ -73,7 +73,7 @@ if __name__ == '__main__':
         parser.error("You must specify a path \n\nExample: python binaries.py -p \"./FolderName\"")
 
     #we've been given a mercurial repo (hopefully)...    
-    if "https" in options.path:
+    if "https" in options.path or "ssh" in options.path or "http" in options.path:
         options.path = options.path.strip('/')
         
         #extract the username for subsequent clones...
