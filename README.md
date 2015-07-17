@@ -4,8 +4,16 @@ Exports any mbed program as a binary
 ##About
 This script navigates through sub directories and compiles each subdirectory into separate .ar files for mbed.org. It also handles the inclusion of header files and the end result is a single folder containing your binaries, and the required headers.
 
+###Features
+* Mercurial integration
+* Generation of .ar files
+* Formatting headers relative to the .ar (no time spent rearranging header location)
+* Uses armcc, so it is guaranteed to work on the online tool chain.
+
 ##Dependencies
-Only one, which is that `armcc` is attached to your path variable.
+Only one, which is that `armcc` is attached to your path variable. 
+
+*P.S. If you are going to use the mercurial integration feature, you will obviously need hg in your path.*
 
 ##Executing
 To execute a binary build follow these steps:
@@ -21,14 +29,13 @@ python binaries.py -p ./ProgramFolder -i folder-you-dont-want-to-compile-1,folde
 
 * -v (--verbose) - Verbose output from the script
 
-* -p (--path) - The directory containing the folders to turn into binaries
+* -p (--path) - The directory containing the folders to turn into binaries (or URL to an mbed mercurial repository)
 
 * -d (--destination) - The destination to place the built files
 
 * -i (--ignore) - A CSV string of folders to ignore during the compilation stage. This does not ommit the folders from the scanning and inclusion of headers.
 
+* -c (--commit) - A URL to a mercurial repo where the binaries will be pushed to after they have been generated.
+
 * -f (--folders) - A CSV string of specific folders to compile **Currently not implemented**
 
-##Future work
-* Mercurial integration
-* Ensure .s files are included properly in the binaries
