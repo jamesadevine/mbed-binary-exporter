@@ -4,6 +4,8 @@ Exports any mbed program as a binary
 ##About
 This script navigates through sub directories and compiles each subdirectory into separate .ar files for mbed.org. It also handles the inclusion of header files and the end result is a single folder containing your binaries, and the required headers.
 
+*NOTE: It's best if you have a program containing libraries, compiling a single library folder will not work. Any files at the top level are ignored during compilation*
+
 ###Features
 * Mercurial integration
 * Generation of .ar files
