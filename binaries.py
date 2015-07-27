@@ -77,7 +77,7 @@ if __name__ == '__main__':
         options.path = options.path.strip('/')
         
         #extract the username for subsequent clones...
-        mercurial_username = re.split('([a-z]*@)',options.path)[1]
+        mercurial_username = re.split('([a-zA-Z0-9]*@)',options.path)[1]
         os.system("hg clone "+options.path)
 
         #ammend the path as we now have the files locally        
@@ -104,7 +104,7 @@ if __name__ == '__main__':
         build_destination = options.build_destination
 
     #the file extensions to look for    
-    file_exts = ["cpp","c","hex","sct","h","s"]
+    file_exts = ["cpp","c","hex","sct","h","s","ar"]
 
     #we never want the mercurial folder...
     always_ignore = ['.hg']
@@ -224,7 +224,7 @@ if __name__ == '__main__':
                     directory = root.replace('\\','/')
                     if ext == "c":
                         compile_files_c.append(directory.replace("./",'')+"/"+file)
-                    if ext == "cpp" or ext == "s":
+                    if ext == "cpp" or ext == "s" or ext == "ar":
                         compile_files_cpp.append(directory.replace("./",'')+"/"+file)
 
         #copy c files ready for compilation to the build folder
@@ -242,15 +242,16 @@ if __name__ == '__main__':
             print "Compile string C: "+' '.join(compile_files_c) + "\n\n"
             print "Compile string CPP: "+' '.join(compile_files_cpp) + "\n\n"
             print "Include string: -I"+' -I'.join(linker_dirs) + "\n\n"
+            print "Command: "+"armcc -c -W --no_strict --cpu Cortex-M0 --apcs=interwork --cpp -O2 -I"+build_destination+"/*.ar -I"+' -I'.join(linker_dirs)+" "+" ".join([build_destination+"/"+compile_file_cpp.split('/')[-1] for compile_file_cpp in compile_files_cpp])+" --gnu --no_rtti -I C:\Keil\ARM\RV31\INC -I C:\Keil\ARM\CMSIS\Include -DTARGET_NRF51822 -DTARGET_M0 -DTARGET_CORTEX_M -DTARGET_NORDIC -DTARGET_NRF51822_MKIT -DTARGET_MCU_NRF51822 -DTARGET_MCU_NORDIC_16K -DTOOLCHAIN_ARM_STD -DTOOLCHAIN_ARM -D__CORTEX_M0 -DARM_MATH_CM0 -DMBED_BUILD_TIMESTAMP=\"1435840731.68\" -D__MBED__=\"1\" -DNRF51 -D__ASSERT_MSG -o \""+build_destination+"/*.o\"" + "\n\n" 
 
         #compile C source
         if len(compile_files_c) > 0:
-            if os.system("armcc -c -W --no_strict --cpu Cortex-M0 --apcs=interwork --c99 -O2 -I"+' -I'.join(linker_dirs)+" "+" ".join([build_destination+"/"+compile_file_c.split('/')[-1] for compile_file_c in compile_files_c])+" --gnu --no_rtti -I C:\Keil\ARM\RV31\INC -I C:\Keil\ARM\CMSIS\Include -DTARGET_NRF51822 -DTARGET_M0 -DTARGET_CORTEX_M -DTARGET_NORDIC -DTARGET_NRF51822_MKIT -DTARGET_MCU_NRF51822 -DTARGET_MCU_NORDIC_16K -DTOOLCHAIN_ARM_STD -DTOOLCHAIN_ARM -D__CORTEX_M0 -DARM_MATH_CM0 -DMBED_BUILD_TIMESTAMP=\"1435840731.68\" -D__MBED__=\"1\" -DNRF51 -D__ASSERT_MSG -o \""+build_destination+"/*.o\"  "):
+            if os.system("armcc -c -W --no_strict --cpu Cortex-M0 --apcs=interwork --c99 -O2 -I"+build_destination+"/*.ar -I"+' -I'.join(linker_dirs)+" "+" ".join([build_destination+"/"+compile_file_c.split('/')[-1] for compile_file_c in compile_files_c])+" --gnu --no_rtti -I C:\Keil\ARM\RV31\INC -I C:\Keil\ARM\CMSIS\Include -DTARGET_NRF51822 -DTARGET_M0 -DTARGET_CORTEX_M -DTARGET_NORDIC -DTARGET_NRF51822_MKIT -DTARGET_MCU_NRF51822 -DTARGET_MCU_NORDIC_16K -DTOOLCHAIN_ARM_STD -DTOOLCHAIN_ARM -D__CORTEX_M0 -DARM_MATH_CM0 -DMBED_BUILD_TIMESTAMP=\"1435840731.68\" -D__MBED__=\"1\" -DNRF51 -D__ASSERT_MSG -o \""+build_destination+"/*.o\"  "):
                 print "check output, and try again"
                 exit(1)
         
         #compile cpp source
-        if os.system("armcc -c -W --no_strict --cpu Cortex-M0 --apcs=interwork --cpp -O2 -I"+' -I'.join(linker_dirs)+" "+" ".join([build_destination+"/"+compile_file_cpp.split('/')[-1] for compile_file_cpp in compile_files_cpp])+" --gnu --no_rtti -I C:\Keil\ARM\RV31\INC -I C:\Keil\ARM\CMSIS\Include -DTARGET_NRF51822 -DTARGET_M0 -DTARGET_CORTEX_M -DTARGET_NORDIC -DTARGET_NRF51822_MKIT -DTARGET_MCU_NRF51822 -DTARGET_MCU_NORDIC_16K -DTOOLCHAIN_ARM_STD -DTOOLCHAIN_ARM -D__CORTEX_M0 -DARM_MATH_CM0 -DMBED_BUILD_TIMESTAMP=\"1435840731.68\" -D__MBED__=\"1\" -DNRF51 -D__ASSERT_MSG -o \""+build_destination+"/*.o\"  "):
+        if os.system("armcc -c -W --no_strict --cpu Cortex-M0 --apcs=interwork --cpp -O2 -I"+build_destination+"/*.ar -I"+' -I'.join(linker_dirs)+" "+" ".join([build_destination+"/"+compile_file_cpp.split('/')[-1] for compile_file_cpp in compile_files_cpp])+" --gnu --no_rtti -I C:\Keil\ARM\RV31\INC -I C:\Keil\ARM\CMSIS\Include -DTARGET_NRF51822 -DTARGET_M0 -DTARGET_CORTEX_M -DTARGET_NORDIC -DTARGET_NRF51822_MKIT -DTARGET_MCU_NRF51822 -DTARGET_MCU_NORDIC_16K -DTOOLCHAIN_ARM_STD -DTOOLCHAIN_ARM -D__CORTEX_M0 -DARM_MATH_CM0 -DMBED_BUILD_TIMESTAMP=\"1435840731.68\" -D__MBED__=\"1\" -DNRF51 -D__ASSERT_MSG -o \""+build_destination+"/*.o\"  "):
             print "check output, and try again"
             exit(1)
 
@@ -292,6 +293,7 @@ if __name__ == '__main__':
 
         if os.path.exists(copy_path):
             clean_dir(copy_path)
+            os.rmdir(copy_path)
 
         shutil.copytree(build_destination,copy_path)
 
